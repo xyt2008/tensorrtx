@@ -6,19 +6,29 @@ So why don't we just skip all parsers? We just use TensorRT network definition A
 
 I wrote this project to get familiar with tensorrt API, and also to share and learn from the community.
 
-All the models are implemented in pytorch first, and export a weights file xxx.wts, and then use tensorrt to load weights, define network and do inference. Some pytorch implementations can be found in my repo [Pytorchx](https://github.com/wang-xinyu/pytorchx), the remaining are from polular open-source pytorch implementations. 
+All the models are implemented in pytorch or mxnet first, and export a weights file xxx.wts, and then use tensorrt to load weights, define network and do inference. Some pytorch implementations can be found in my repo [Pytorchx](https://github.com/wang-xinyu/pytorchx), the remaining are from polular open-source implementations.
 
-## Getting Started
+## News
 
-There is a guide for quickly getting started, taking lenet5 as a demo. [Getting_Started.](./getting_started)
+- `16 Aug 2020`. [upczww](https://github.com/upczww) added a python wrapper for yolov5.
+- `14 Aug 2020`. Update yolov5 to v3.0 release.
+- `3 Aug 2020`. [BaofengZan](https://github.com/BaofengZan) implemented yolov5 s/m/l/x (yolov5 v2.0 release).
+- `6 July 2020`. Add yolov3-tiny, and got 333fps on GTX1080.
+- `28 May 2020`. arcface LResNet50E-IR model from [deepinsight/insightface](https://github.com/deepinsight/insightface) implemented. We got 333fps on GTX1080.
+- `22 May 2020`. A new branch [trt4](https://github.com/wang-xinyu/tensorrtx/tree/trt4) created, which is using TensorRT 4 API. Now the master branch is using TensorRT 7 API. But only `yolov4` has been migrated to TensorRT 7 API for now. The rest will be migrated soon. And a tutorial for `migarating from TensorRT 4 to 7` provided.
+
+## Tutorials
+
+- [A guide for quickly getting started, taking lenet5 as a demo.](./tutorials/getting_started.md)
+- [Frequently Asked Questions (FAQ)](./tutorials/faq.md)
+- [Migrating from TensorRT 4 to 7](./tutorials/migrating_from_tensorrt_4_to_7.md)
+- [How to implement multi-GPU processing, taking YOLOv4 as example](./tutorials/multi_GPU_processing.md)
+- [Check if Your GPU support FP16/INT8](./tutorials/check_fp16_int8_support.md)
+- [Deploy YOLOv4 with Triton Inference Server](https://github.com/isarsoft/yolov4-triton-tensorrt)
 
 ## Test Environment
 
-1. Jetson TX1 / Ubuntu16.04 / cuda9.0 / cudnn7.1.5 / tensorrt4.0.2 / nvinfer4.1.3 / opencv3.3
-
-2. GTX1080 / Ubuntu16.04 / cuda10.0 / cudnn7.6.5 / tensorrt7.0.0 / nvinfer7.0.0 / opencv3.3
-
-Currently, TX1/TX2 and x86 GTX1080 were tested. trt4 api were using, some APIs are deprecated in trt7, but still can compile successfully.
+1. GTX1080 / Ubuntu16.04 / cuda10.0 / cudnn7.6.5 / tensorrt7.0.0 / nvinfer7.0.0 / opencv3.3
 
 ## How to run
 
@@ -42,10 +52,14 @@ Following models are implemented.
 |[shufflenet](./shufflenetv2)| ShuffleNetV2 with 0.5x output channels |
 |[squeezenet](./squeezenet)| SqueezeNet 1.1 model |
 |[vgg](./vgg)| VGG 11-layer model |
-|[yolov3](./yolov3)| darknet-53, weights from yolov3 authors, pytorch implementation from [ayooshkathuria/pytorch-yolo-v3](https://github.com/ayooshkathuria/pytorch-yolo-v3) |
-|[yolov3-spp](./yolov3-spp)| darknet-53, weights from [ultralytics/yolov3](https://github.com/ultralytics/yolov3) |
+|[yolov3-tiny](./yolov3-tiny)| weights and pytorch implementation from [ultralytics/yolov3](https://github.com/ultralytics/yolov3) |
+|[yolov3](./yolov3)| darknet-53, weights and pytorch implementation from [ultralytics/yolov3](https://github.com/ultralytics/yolov3) |
+|[yolov3-spp](./yolov3-spp)| darknet-53, weights and pytorch implementation from [ultralytics/yolov3](https://github.com/ultralytics/yolov3) |
 |[yolov4](./yolov4)| CSPDarknet53, weights from [AlexeyAB/darknet](https://github.com/AlexeyAB/darknet#pre-trained-models), pytorch implementation from [ultralytics/yolov3](https://github.com/ultralytics/yolov3) |
+|[yolov5](./yolov5)| yolov5-s/m/l/x v1.0 v2.0 v3.0, pytorch implementation from [ultralytics/yolov5](https://github.com/ultralytics/yolov5) |
 |[retinaface](./retinaface)| resnet-50, weights from [biubug6/Pytorch_Retinaface](https://github.com/biubug6/Pytorch_Retinaface) |
+|[arcface](./arcface)| LResNet50E-IR, weights from [deepinsight/insightface](https://github.com/deepinsight/insightface) |
+|[retinafaceAntiCov](./retinafaceAntiCov)| mobilenet0.25, weights from [deepinsight/insightface](https://github.com/deepinsight/insightface), retinaface anti-COVID-19, detect face and mask attribute |
 
 ## Tricky Operations
 
@@ -60,31 +74,37 @@ Some tricky operations encountered in these models, already solved, but might ha
 |torch.chunk()| implement the 'chunk(2, dim=C)' by tensorrt plugin, see shufflenet. |
 |channel shuffle| use two shuffle layers to implement `channel_shuffle`, see shufflenet. |
 |adaptive pool| use fixed input dimension, and use regular average pooling, see shufflenet. |
-|leaky relu| I wrote a leaky relu plugin, but PRelu in `NvInferPlugin.h` can be used, see yolov3. |
-|yolo layer v1| yolo layer is implemented as a plugin, see yolov3. |
+|leaky relu| I wrote a leaky relu plugin, but PRelu in `NvInferPlugin.h` can be used, see yolov3 in branch `trt4`. |
+|yolo layer v1| yolo layer is implemented as a plugin, see yolov3 in branch `trt4`. |
 |yolo layer v2| three yolo layers implemented in one plugin, see yolov3-spp. |
 |upsample| replaced by a deconvolution layer, see yolov3. |
 |hsigmoid| hard sigmoid is implemented as a plugin, hsigmoid and hswish are used in mobilenetv3 |
 |retinaface output decode| implement a plugin to decode bbox, confidence and landmarks, see retinaface. |
 |mish| mish activation is implemented as a plugin, mish is used in yolov4 |
+|prelu| mxnet's prelu activation with trainable gamma is implemented as a plugin, used in arcface |
+|HardSwish| HardSwish activation is implemented as a plugin, used in yolov5 v3.0 |
 
 ## Speed Benchmark
 
 | Models | Device | BatchSize | Mode | Input Shape(HxW) | FPS |
 |-|-|:-:|:-:|:-:|:-:|
-| YOLOv3(darknet53) | Xavier | 1 | FP16 | 320x320 | 55 |
-| YOLOv3-spp(darknet53) | Xeon E5-2620/GTX1080 | 1 | FP32 | 256x416 | 94 |
-| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 1 | FP32 | 256x416 | 59 |
-| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 4 | FP32 | 256x416 | 74 |
-| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 8 | FP32 | 256x416 | 83 |
+| YOLOv3-tiny | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 333 |
+| YOLOv3(darknet53) | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 39.2 |
+| YOLOv3-spp(darknet53) | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 38.5 |
+| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 35.7 |
+| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 4 | FP16 | 608x608 | 40.9 |
+| YOLOv4(CSPDarknet53) | Xeon E5-2620/GTX1080 | 8 | FP16 | 608x608 | 41.3 | 
+| YOLOv5-s | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 142 |
+| YOLOv5-s | Xeon E5-2620/GTX1080 | 4 | FP16 | 608x608 | 173 |
+| YOLOv5-s | Xeon E5-2620/GTX1080 | 8 | FP16 | 608x608 | 190 |
+| YOLOv5-m | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 71 |
+| YOLOv5-l | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 43 |
+| YOLOv5-x | Xeon E5-2620/GTX1080 | 1 | FP16 | 608x608 | 29 |
 | RetinaFace(resnet50) | TX2 | 1 | FP16 | 384x640 | 15 |
 | RetinaFace(resnet50) | Xeon E5-2620/GTX1080 | 1 | FP32 | 928x1600 | 15 |
-
-Detection net FPS test including inference and nms time, excluding image preprocess time.
+| ArcFace(LResNet50E-IR) | Xeon E5-2620/GTX1080 | 1 | FP32 | 112x112 | 333 |
 
 Help wanted, if you got speed results, please add an issue or PR.
-
-Thanks @Kmarconi for yolov3(darknet53) speed test.
 
 ## Acknowledgments & Contact
 
@@ -94,4 +114,4 @@ Any contributions, questions and discussions are welcomed, contact me by followi
 
 E-mail: wangxinyu_es@163.com
 
-WeChat ID: wangxinyu0375
+WeChat ID: wangxinyu0375 (可加我微信进tensorrtx交流群)
